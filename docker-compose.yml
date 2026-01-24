@@ -1,4 +1,4 @@
 services:
   proxy:
     build: .
-    image: localhost/pronto-proxy
+    image: mtobisch/pronto-proxy:1.0.0
