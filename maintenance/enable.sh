@@ -1,0 +1,1 @@
+touch /maintenance/enabled/$1

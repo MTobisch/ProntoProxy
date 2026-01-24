@@ -1,0 +1,4 @@
+services:
+  proxy:
+    build: .
+    image: localhost/pronto-proxy
