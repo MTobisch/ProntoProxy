@@ -45,7 +45,7 @@ services:
 
 **Note:** When starting the container, any `.conf` files in `/etc/nginx/templates` will have their env vars substituted with their real values and be moved to `/etc/nginx/conf.d`. This is important to keep in mind when using `include` and other filesystem-related directives (you need to use paths assuming the latter location).
 
-# Certbot & SSL
+## Certbot & SSL
 
 This proxy does not come with certbot by itself, but can be used with it easily. A sample server configuration with SSL enabled might look like this:
 
@@ -92,7 +92,7 @@ certbot certonly --webroot --webroot-path ./well-known-webroot -d mydomain.com -
 
 In the end, just replace the dummy certificates in your server config with the actual ones you just received and make sure to refresh the certificates regularly by calling `certbot renew` via a method of your choosing (cronjob, etc.).
 
-# Auto-reload
+## Auto-reload
 
 The server will gracefully auto-reload every 7 days to load new configuration and potentially new certificates (see section above).
 
