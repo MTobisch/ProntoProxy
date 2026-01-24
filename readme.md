@@ -1,15 +1,90 @@
-- bind mount your .conf files (server blocks, etc.) to "/etc/nginx/templates/extra" to extend the standard configuration or "/etc/nginx/templates" if you want to entirely replace it.
-- every .conf file placed directly into these folders is included automatically at the end of nginx.conf. if you wish to not load some .conf files and instead wish to instead include them manually when you need them, just put them in a subfolder so they aren't automatically loaded.
-- when starting the container, any conf files in /etc/nginx/templates will have their env vars substituted with their real values and be moved to /etc/nginx/conf.d. So when using includes and
-  other filesystem-related directives in you conf files, you need to use paths assuming the latter location.
+# Pronto Proxy
 
-# Certbot
+This is a small, nginx-based webserver Docker image that can be used to quickly set up an reverse proxy on any server.
 
-This proxy does not come with certbot by itself, but it does provide an conf snippet (conf.d/includes/serveWellKnown.conf) that you can include in a server block which will direct all requests for the .well-known location to the folder "/well-known-webroot". You can then easily wire up certbot by bind-mounting this folder and pointing certbot to it like:
+It aims to remain maximally flexible (by allowing any nginx configuration to be loaded), but comes with the most common nginx configuration options built in and provides many optional snippets that can be included in your server configs to take away some of the tedium.
 
+## Usage
+
+Let's assume a simple server configuration with a proxy pass:
+
+```
+server {
+  listen 80;
+  listen [::]:80;
+
+  server_name mydomain.com;
+    
+  location / {
+    set $proxyTarget http://some-other-server:80;
+    include conf.d/includes/proxyPass.conf;
+  }
+}
+```
+
+In this, we're setting the $proxyTarget variable to the target url and then load the helper snippet `conf.d/includes/proxyPass.conf` to handle the rest of the proxy pass. There are many more of such "convenience"-snippets that can be included in the `conf/templates/includes` folder of this repo.
+
+Now simply start a container from the docker image and mount your custom nginx `.conf` files into it. There are two options:
+- Bind mount the conf files into `/etc/nginx/templates/extra` to extend the standard configuration.
+- Bind mount the conf files into `/etc/nginx/templates` directly to replace the standard configuration.
+
+Every `.conf` file placed directly into these folders is loaded automatically and included at the end of `nginx.conf`. 
+
+A minimal Docker compose config might then look like this:
+```
+services:
+  proxy:
+    image: pronto-proxy-image-name
+    ports:
+      - 80:80
+    volumes:
+      - ./conf:/etc/nginx/templates/extra
+```
+
+**Note:** When starting the container, any `.conf` files in `/etc/nginx/templates` will have their env vars substituted with their real values and be moved to `/etc/nginx/conf.d`. This is important to keep in mind when using `include` and other filesystem-related directives (you need to use paths assuming the latter location).
+
+# Certbot & SSL
+
+This proxy does not come with certbot by itself, but can be used with it easily. A sample server configuration with SSL enabled might look like this:
+
+```
+server {
+  listen 80;
+  listen [::]:80;
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  
+  server_name         mydomain.com;
+  ssl_certificate     /dummycert/fullchain.pem;
+  ssl_certificate_key /dummycert/privkey.pem;
+
+  include conf.d/includes/serveWellKnown.conf;
+    
+  location / {
+    set $proxyTarget http://some-other-server:80;
+    include conf.d/includes/proxyPass.conf;
+  }
+}
+```
+
+This image comes with self-signed dummy certs, so you can use those temporarily while we fetch the real ones. 
+
+By including the `conf.d/includes/serveWellKnown.conf` snippet in your server block, all http requests to `/.well-known` point at the `/well-known-webroot` folder. You can then simply bind-mount that folder so certbot can access it from the host. In addition, you should also bind-mount the `/etc/letsencrypt` folder, so the certificates aren't lost on container restarts. 
+
+The "volumes" config in docker compose would then look like so:
+```
 volumes:
-
+- ./conf:/etc/nginx/templates/extra
+- ./well-known-webroot:/well-known-webroot
 - /etc/letsencrypt:/etc/letsencrypt
-- ./some-folder:/well-known-webroot
+```
 
-On the host, you can then just point the "webroot-path" CLI option in certbot to "./some-folder". If certbot is also running in a container, just bind mount "./some-folder"
+When fetching the certificates on the host, you can then just point the "webroot-path" CLI option in certbot to `./well-known-webroot`. 
+
+```
+certbot certonly --webroot --webroot-path ./well-known-webroot -d mydomain.com -m me@mydomain.com --agree-tos
+```
+
+**Note:** If certbot is running in a container too, you will have to bind mount the `./well-known-webroot` and `/etc/letsencrypt` folders from the host into the certbot container as well and point the webroot-path option to wherever your have mounted it at.
+
+In the end, just replace the dummy certificates in your server config with the actual ones you just received and make sure to refresh the certificates regularly by calling `certbot renew` via a method of your choosing (cronjob, etc.).
