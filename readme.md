@@ -36,7 +36,7 @@ A minimal Docker compose config might then look like this:
 ```
 services:
   proxy:
-    image: pronto-proxy-image-name
+    image: mtobisch/pronto-proxy
     ports:
       - 80:80
     volumes:
