@@ -11,6 +11,9 @@ ENV APP_ENV=prod
 COPY ./maintenance/ /maintenance
 RUN chmod +x /maintenance/enable.sh && chmod +x /maintenance/disable.sh
 
+# For serveWellKnown.conf. Intercepts requests to /.well-known and serves them from here for certbot validation.
+RUN mkdir /well-known-webroot
+
 # Configs
 # ----------------------------------
 
@@ -29,23 +32,13 @@ COPY ./conf/templates/includes /etc/nginx/templates/includes
 # To prevent the template logic from removing the suffix from the template files
 RUN sed -i 's|output_path="$output_dir/${relative_path%"$suffix"}"|output_path="$output_dir/$relative_path"|g' /docker-entrypoint.d/20-envsubst-on-templates.sh
 
-# Certbot
-# ----------------------------------
-
-# Create dummy self-signed certs
-RUN mkdir -p /dummycert &&\
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /dummycert/privkey.pem \
-    -out /dummycert/fullchain.pem \
-    -subj "/CN=localhost"
-
-# For serveWellKnown.conf. Intercepts requests to /.well-known and serves them from here for certbot validation.
-RUN mkdir /well-known-webroot
-
 # Entrypoint
 # ----------------------------------
 
 # Add additional init scripts
+COPY ./docker-entrypoint.d/97-create-dummy-certs.sh /docker-entrypoint.d/97-create-dummy-certs.sh
+RUN chmod +x /docker-entrypoint.d/97-create-dummy-certs.sh
+
 COPY ./docker-entrypoint.d/98-configure-smtp.sh /docker-entrypoint.d/98-configure-smtp.sh
 RUN chmod +x /docker-entrypoint.d/98-configure-smtp.sh
 
