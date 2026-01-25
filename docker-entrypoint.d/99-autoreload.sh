@@ -4,7 +4,10 @@
 while :; do
   sleep 7d
 
-  echo "Autoreload: Reloading nginx per scheduled intverval..."
+  echo "Autoreload: Reloading nginx per scheduled interval..."
+
+  # Reparse template conf files
+  /docker-entrypoint.d/20-envsubst-on-templates.sh
 
   OUT=$(nginx -t 2>&1)
   EXIT_CODE=$?

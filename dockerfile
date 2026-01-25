@@ -9,7 +9,6 @@ ENV APP_ENV=prod
 
 # Copy over maintenance files
 COPY ./maintenance/ /maintenance
-RUN chmod +x /maintenance/enable.sh && chmod +x /maintenance/disable.sh
 
 # For serveWellKnown.conf. Intercepts requests to /.well-known and serves them from here for certbot validation.
 RUN mkdir /well-known-webroot
@@ -32,18 +31,18 @@ COPY ./conf/templates/includes /etc/nginx/templates/includes
 # To prevent the template logic from removing the suffix from the template files
 RUN sed -i 's|output_path="$output_dir/${relative_path%"$suffix"}"|output_path="$output_dir/$relative_path"|g' /docker-entrypoint.d/20-envsubst-on-templates.sh
 
-# Entrypoint
+# Scripts
 # ----------------------------------
 
 # Add additional init scripts
 COPY ./docker-entrypoint.d/97-create-dummy-certs.sh /docker-entrypoint.d/97-create-dummy-certs.sh
-RUN chmod +x /docker-entrypoint.d/97-create-dummy-certs.sh
-
 COPY ./docker-entrypoint.d/98-configure-smtp.sh /docker-entrypoint.d/98-configure-smtp.sh
-RUN chmod +x /docker-entrypoint.d/98-configure-smtp.sh
-
 COPY ./docker-entrypoint.d/99-autoreload.sh /docker-entrypoint.d/99-autoreload.sh
-RUN chmod +x /docker-entrypoint.d/99-autoreload.sh
+RUN chmod -R +x /docker-entrypoint.d
+
+# Copy over util scripts
+COPY ./scripts /scripts
+RUN chmod -R +x /scripts
 
 # Send proper stop signal on close
 STOPSIGNAL SIGTERM
