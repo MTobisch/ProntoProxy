@@ -108,7 +108,7 @@ When everything worked, just replace the dummy certificates in your server confi
 
 The server will gracefully auto-reload every 7 days to load new configuration and potentially new certificates (see section above).
 
-Before doing this, it checks if the configuration is valid before attemtpting the reload and has the ability to send an e-mail if it is not. For this, the following environment variables must be set for the container:
+Before doing this, it checks if the configuration is valid before attempting the reload and has the ability to send an e-mail if it is not. For this, the following environment variables must be set for the container:
 
 ```
 EMAIL=YOUR_MAIL_ADDRESS
