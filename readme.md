@@ -83,24 +83,24 @@ server {
 
 This image comes with self-signed dummy certs, so you can use those temporarily while we fetch the real ones.
 
-By including the `conf.d/includes/serveWellKnown.conf` snippet in your server block, all http requests to `/.well-known` point at the `/well-known-webroot` folder. You can then simply bind-mount that folder so certbot can access it from the host. In addition, you should also bind-mount the `/etc/letsencrypt` folder, so the certificates aren't lost on container restarts.
+By including the `conf.d/includes/interceptAcme.conf` snippet in your server block, all http requests to `/.well-known/acme-challenge` use the `/acme` folder as its webroot. You can then simply bind-mount that folder so certbot can access it from the host. In addition, you should also bind-mount the `/etc/letsencrypt` folder, so the certificates aren't lost on container restarts.
 
 The final "volumes" config in docker compose would then look like so:
 
 ```
 volumes:
 - ./conf:/etc/nginx/templates/extra
-- ./well-known-webroot:/well-known-webroot
+- ./acme:/acme
 - /etc/letsencrypt:/etc/letsencrypt
 ```
 
-When fetching the certificates on the host, you can then just point the "webroot-path" CLI option in certbot to `./well-known-webroot`.
+When fetching the certificates on the host, you can then just point the "webroot-path" CLI option in certbot to `./acme`.
 
 ```
-certbot certonly --webroot --webroot-path ./well-known-webroot -d mydomain.com -m me@mydomain.com --agree-tos
+certbot certonly --webroot --webroot-path ./acme -d mydomain.com -m me@mydomain.com --agree-tos
 ```
 
-**Note:** If certbot is running in a container too, you will have to bind mount the `./well-known-webroot` and `/etc/letsencrypt` folders from the host into the certbot container as well and point the webroot-path option to wherever your have mounted it at.
+**Note:** If certbot is running in a container too, you will have to bind mount the `./acme` and `/etc/letsencrypt` folders from the host into the certbot container as well and point the webroot-path option to wherever your have mounted it at.
 
 When everything worked, just replace the dummy certificates in your server config with the actual ones you just received and make sure to refresh the certificates regularly by calling `certbot renew` via a method of your choosing (cronjob, etc.).
 
